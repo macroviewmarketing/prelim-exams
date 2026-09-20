@@ -1,26 +1,56 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* MacroView brand tokens — Cinematic Editorial Dark, toned down for a study tool. */
+  --mv-black: #060608;
+  --mv-deep: #0b0c10;
+  --mv-surface: #111318;
+  --mv-surface-2: #161820;
+  --mv-border: #1e2028;
+  --mv-border-glow: #2a2d3a;
+  --mv-muted: #3a3d4a;
+  --mv-dim: #6b6f7e;
+  --mv-text: #c8cad4;
+  --mv-white: #eeeef2;
+  --mv-blue: #4f8cff;
+  --mv-blue-dim: #2d5acc;
+  --mv-blue-glow: rgba(79, 140, 255, 0.18);
+  --mv-cyan: #00d4ff;
+  --mv-success: #00c97b;
+  --mv-warning: #f5a623;
+  --mv-danger: #ff4757;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-mv-black: var(--mv-black);
+  --color-mv-deep: var(--mv-deep);
+  --color-mv-surface: var(--mv-surface);
+  --color-mv-surface-2: var(--mv-surface-2);
+  --color-mv-border: var(--mv-border);
+  --color-mv-border-glow: var(--mv-border-glow);
+  --color-mv-muted: var(--mv-muted);
+  --color-mv-dim: var(--mv-dim);
+  --color-mv-text: var(--mv-text);
+  --color-mv-white: var(--mv-white);
+  --color-mv-blue: var(--mv-blue);
+  --color-mv-blue-dim: var(--mv-blue-dim);
+  --color-mv-cyan: var(--mv-cyan);
+  --color-mv-success: var(--mv-success);
+  --color-mv-warning: var(--mv-warning);
+  --color-mv-danger: var(--mv-danger);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-bebas-neue), sans-serif;
+  --font-body: var(--font-dm-sans), sans-serif;
+  --font-ui: var(--font-space-mono), monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--mv-black);
+  color: var(--mv-text);
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--mv-blue-glow);
+  color: var(--mv-white);
 }

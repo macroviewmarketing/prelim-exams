@@ -10,24 +10,24 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
-      <header className="border-b border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="flex min-h-screen flex-col bg-mv-black">
+      <header className="border-b border-mv-border bg-mv-black/95 px-6 py-5 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Prelim Exams</span>
-          <nav className="flex items-center gap-4">
+          <span className="font-display text-2xl tracking-wide text-mv-white">PRELIM EXAMS</span>
+          <nav className="flex items-center gap-5 font-ui text-[11px] tracking-[0.12em] uppercase">
             {user ? (
               <>
-                <span className="text-sm text-zinc-500">{user.email}</span>
+                <span className="text-mv-dim">{user.email}</span>
                 <SignOutButton />
               </>
             ) : (
               <>
-                <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+                <Link href="/login" className="text-mv-dim transition-colors hover:text-mv-blue">
                   Log in
                 </Link>
                 <Link
                   href="/signup"
-                  className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                  className="border border-mv-white bg-mv-white px-4 py-2 text-mv-black transition-colors hover:border-mv-blue hover:bg-mv-blue hover:text-mv-white"
                 >
                   Sign up
                 </Link>
@@ -37,23 +37,30 @@ export default async function Home() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Prelim Exams</h1>
-        <p className="mt-2 max-w-xl text-zinc-600 dark:text-zinc-400">
-          Spaced-repetition drills for prelim exam prep. Pick a subject and start practicing —
-          every problem is freshly generated, and your mastery of each topic is tracked as you go.
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
+        <span className="font-ui text-[11px] tracking-[0.25em] text-mv-dim uppercase">
+          Spaced-repetition study drills
+        </span>
+        <h1 className="mt-2 font-display text-5xl leading-[0.92] tracking-wide text-mv-white sm:text-6xl">
+          Pick a subject. Start drilling.
+        </h1>
+        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-mv-text">
+          Every problem is freshly generated, and your mastery of each topic is tracked as you go —
+          the weaker a topic, the more often it comes back around.
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {SUBJECTS.map((subject) => (
             <Link
               key={subject.id}
               href={`/subjects/${subject.id}`}
-              className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600"
+              className="group relative overflow-hidden border border-mv-border bg-mv-surface p-6 transition-colors hover:border-mv-border-glow"
             >
-              <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">{subject.title}</h2>
-              <p className="mt-1 text-sm text-zinc-500">{subject.description}</p>
-              <p className="mt-3 text-xs text-zinc-400">{subject.topics.length} topics</p>
+              <h2 className="font-display text-xl tracking-wide text-mv-white">{subject.title}</h2>
+              <p className="mt-2 text-sm text-mv-dim">{subject.description}</p>
+              <p className="mt-4 font-ui text-[10px] tracking-[0.2em] text-mv-blue uppercase">
+                {subject.topics.length} topics
+              </p>
             </Link>
           ))}
         </div>

@@ -97,16 +97,16 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   }, [subject?.id, attempt]);
 
   if (!subject) {
-    return <div className="p-8 text-center text-zinc-500">Unknown subject.</div>;
+    return <div className="p-8 text-center text-mv-dim">Unknown subject.</div>;
   }
 
   if (loadError) {
     return (
-      <div className="flex flex-col items-center gap-3 p-8 text-center text-zinc-500">
+      <div className="flex flex-col items-center gap-3 p-8 text-center text-mv-dim">
         <p>Something went wrong loading this drill.</p>
         <button
           onClick={() => setAttempt((n) => n + 1)}
-          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="border border-mv-border px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-white uppercase transition-colors hover:border-mv-white"
         >
           Retry
         </button>
@@ -115,7 +115,7 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   }
 
   if (!state || !problem) {
-    return <div className="p-8 text-center text-zinc-500">Loading drill…</div>;
+    return <div className="p-8 text-center text-mv-dim">Loading drill…</div>;
   }
 
   const nextProblem = (state2: SubjectState) => {
@@ -171,19 +171,19 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   const accuracy = state.stats.done > 0 ? Math.round((state.stats.correct / state.stats.done) * 100) : 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
+      <div className="border border-mv-border bg-mv-surface p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="border border-mv-blue-glow px-3 py-1 font-ui text-[10px] tracking-[0.2em] text-mv-blue uppercase">
             {subject.topics.find((t) => t.id === problem.id)?.name ?? problem.id}
           </span>
-          <span className="text-xs text-zinc-400">
+          <span className="font-ui text-[11px] text-mv-dim">
             Box {state.topics[problem.id]?.box ?? 1}/5
           </span>
         </div>
 
         <p
-          className="mb-4 text-lg leading-relaxed text-zinc-900 dark:text-zinc-100 [&_b]:font-semibold"
+          className="mb-4 text-lg leading-relaxed text-mv-white [&_b]:font-semibold"
           dangerouslySetInnerHTML={{ __html: problem.prompt }}
         />
 
@@ -195,85 +195,85 @@ export default function Drill({ subjectId }: { subjectId: string }) {
             onChange={(e) => setAnswer(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && check()}
             placeholder="Your answer"
-            className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+            className="flex-1 border border-mv-border bg-mv-black px-3 py-2.5 text-mv-white outline-none placeholder:text-mv-dim focus:border-mv-blue"
           />
-          {problem.unit === "percent" && <span className="text-zinc-500">%</span>}
+          {problem.unit === "percent" && <span className="text-mv-dim">%</span>}
         </div>
 
         {feedback && (
           <p
             className={`mt-3 text-sm font-medium ${
-              feedback === "correct" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+              feedback === "correct" ? "text-mv-success" : "text-mv-danger"
             }`}
           >
             {feedback === "correct" ? "Correct!" : `Not quite. Answer: ${problem.ans}`}
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           <button
             onClick={check}
             disabled={!!feedback}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="border border-mv-white bg-mv-white px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-black uppercase transition-colors hover:border-mv-blue hover:bg-mv-blue hover:text-mv-white disabled:opacity-40"
           >
             Check
           </button>
           <button
             onClick={() => setShowHint((v) => !v)}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="border border-mv-border px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-white uppercase transition-colors hover:border-mv-white"
           >
             Hint
           </button>
           <button
             onClick={skip}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="border border-mv-border px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-white uppercase transition-colors hover:border-mv-white"
           >
             I&apos;m stuck
           </button>
           <button
             onClick={next}
-            className="ml-auto rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="ml-auto border border-mv-border px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-white uppercase transition-colors hover:border-mv-white"
           >
             Next →
           </button>
         </div>
 
         {showHint && (
-          <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+          <p className="mt-3 border border-mv-warning/30 bg-mv-warning/10 p-3 text-sm text-mv-warning">
             {problem.hint}
           </p>
         )}
 
         {showSol && (
           <pre
-            className="mt-3 overflow-x-auto whitespace-pre-wrap rounded-lg bg-zinc-50 p-3 font-mono text-xs leading-relaxed text-zinc-700 [&_.k]:font-semibold [&_.k]:text-zinc-900 dark:bg-zinc-950 dark:text-zinc-300 dark:[&_.k]:text-zinc-100"
+            className="mt-3 overflow-x-auto border border-mv-border bg-mv-black p-3 font-ui text-xs leading-relaxed whitespace-pre-wrap text-mv-text [&_.k]:font-bold [&_.k]:text-mv-white"
             dangerouslySetInnerHTML={{ __html: problem.sol }}
           />
         )}
       </div>
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Mastery</h2>
+      <div className="border border-mv-border bg-mv-surface p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-ui text-[11px] tracking-[0.2em] text-mv-dim uppercase">Mastery</h2>
           <button
             onClick={resetAll}
-            className="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+            className="font-ui text-[10px] tracking-[0.12em] text-mv-danger uppercase hover:underline"
           >
             Reset all progress
           </button>
         </div>
-        <div className="mb-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
           <Stat label="Mastered" value={`${mastered}/${subject.topics.length}`} />
           <Stat label="Accuracy" value={`${accuracy}%`} />
           <Stat label="Streak" value={String(state.stats.streak)} />
           <Stat label="Best streak" value={String(state.stats.best)} />
         </div>
-        <div className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
+        <div className="flex flex-col divide-y divide-mv-border">
           {subject.topics.map((t) => {
             const box = state.topics[t.id]?.box ?? 1;
             return (
               <div key={t.id} className="flex items-center justify-between gap-3 py-2.5">
-                <span className="truncate text-sm text-zinc-700 dark:text-zinc-300">{t.name}</span>
+                <span className="truncate text-sm text-mv-text">{t.name}</span>
                 <div className="flex shrink-0 items-center gap-3">
                   <div className="flex gap-1" title={`Box ${BOX_LABELS[box]}/5`}>
                     {[1, 2, 3, 4, 5].map((k) => (
@@ -282,16 +282,16 @@ export default function Drill({ subjectId }: { subjectId: string }) {
                         className={`h-2 w-2 rounded-full ${
                           k <= box
                             ? box >= 5
-                              ? "bg-emerald-500"
-                              : "bg-amber-400"
-                            : "bg-zinc-200 dark:bg-zinc-700"
+                              ? "bg-mv-success"
+                              : "bg-mv-warning"
+                            : "bg-mv-border"
                         }`}
                       />
                     ))}
                   </div>
                   <button
                     onClick={() => resetTopic(t.id)}
-                    className="text-xs text-zinc-400 hover:text-red-600 hover:underline dark:hover:text-red-400"
+                    className="font-ui text-[10px] tracking-[0.1em] text-mv-dim uppercase hover:text-mv-danger hover:underline"
                   >
                     Reset
                   </button>
@@ -301,9 +301,9 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           })}
         </div>
         {!userId && (
-          <p className="mt-4 text-xs text-zinc-400">
+          <p className="mt-5 text-xs text-mv-dim">
             Progress is saved on this device only.{" "}
-            <a href="/signup" className="underline">
+            <a href="/signup" className="text-mv-blue underline">
               Create an account
             </a>{" "}
             to sync across devices.
@@ -316,9 +316,9 @@ export default function Drill({ subjectId }: { subjectId: string }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-950">
-      <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{value}</div>
-      <div className="text-xs text-zinc-500">{label}</div>
+    <div className="bg-mv-deep px-3 py-2.5">
+      <div className="font-ui text-lg font-bold text-mv-white">{value}</div>
+      <div className="mt-0.5 font-ui text-[10px] tracking-[0.1em] text-mv-dim uppercase">{label}</div>
     </div>
   );
 }

@@ -14,10 +14,7 @@ export default function SignOutButton() {
   };
 
   return (
-    <button
-      onClick={onClick}
-      className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-    >
+    <button onClick={onClick} className="text-mv-dim transition-colors hover:text-mv-blue">
       Log out
     </button>
   );
