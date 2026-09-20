@@ -24,10 +24,20 @@ export type Topic = {
   generate: () => Problem;
 };
 
+/** One flashcard/term entry, used by the Quizlet-style TermQuiz component. */
+export type TermEntry = {
+  id: string;
+  term: string;
+  def: string;
+  week?: number;
+};
+
 export type Subject = {
   id: string;
   title: string;
   description: string;
   topics: Topic[];
   formulaSheetHtml?: string;
+  /** Present when this subject has a term-recall deck driven by TermQuiz instead of Drill. */
+  terms?: TermEntry[];
 };

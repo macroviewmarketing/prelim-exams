@@ -257,8 +257,9 @@ const FORMULA_SHEET_HTML = `
 
 export const eceTe2: Subject = {
   id: "ece-te2",
-  title: "ECE TE2 · Prelim Reviewer",
-  description: "Weeks 1–4 terms, subnetting math, and link-budget concepts.",
+  title: "ECE TE2 · Advanced Communications Systems and Design",
+  description: "Term flashcards (Weeks 1–4) plus a subnetting math drill.",
   topics: [...SUBNET_TOPICS, ...VOCAB_TOPICS],
+  terms: TERMS.map((t) => ({ id: slug(t.t), term: t.t, def: t.d, week: t.w })),
   formulaSheetHtml: FORMULA_SHEET_HTML,
 };

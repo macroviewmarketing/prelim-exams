@@ -2,15 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getSubject } from "@/lib/subjects";
-import type { Problem } from "@/lib/subjects/types";
+import type { Problem, Topic } from "@/lib/subjects/types";
 import {
   fetchRemoteProgress,
   gradeAnswer,
-  gradeSelf,
   initSubjectState,
   loadLocalProgress,
   mergeRemoteIntoLocal,
-  pickTopic,
+  pickTopicSafe,
   resetAllProgress,
   resetRemoteSubjectProgress,
   resetRemoteTopicProgress,
@@ -23,23 +22,11 @@ import { createClient } from "@/lib/supabase/client";
 
 const BOX_LABELS = ["", "1", "2", "3", "4", "5"];
 
-function pickSafe(
-  topicIds: string[],
-  topics: SubjectState["topics"],
-  last: string | null,
-): string {
-  try {
-    const id = pickTopic(topicIds, topics, last);
-    if (id && topics[id]) return id;
-  } catch {
-    // fall through to a safe default below
-  }
-  return topicIds.find((id) => topics[id]) ?? topicIds[0];
-}
-
 export default function Drill({ subjectId }: { subjectId: string }) {
   const subject = useMemo(() => getSubject(subjectId), [subjectId]);
-  const topicIds = useMemo(() => subject?.topics.map((t) => t.id) ?? [], [subject]);
+  // Only checkable topics drill here — "reveal"-mode term recall lives in TermQuiz instead.
+  const topics = useMemo<Topic[]>(() => subject?.topics.filter((t) => t.mode !== "reveal") ?? [], [subject]);
+  const topicIds = useMemo(() => topics.map((t) => t.id), [topics]);
 
   const [state, setState] = useState<SubjectState | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -66,8 +53,8 @@ export default function Drill({ subjectId }: { subjectId: string }) {
       const local = loadLocalProgress(subject);
       setState(local);
 
-      const topicId = pickSafe(topicIds, local.topics, local.last);
-      const topic = subject.topics.find((t) => t.id === topicId);
+      const topicId = pickTopicSafe(topicIds, local.topics, local.last);
+      const topic = topics.find((t) => t.id === topicId);
       if (!topic) throw new Error("no topics available");
       setProblem(topic.generate());
     } catch {
@@ -120,8 +107,8 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   }
 
   const nextProblem = (state2: SubjectState) => {
-    const topicId = pickSafe(topicIds, state2.topics, state2.last);
-    const topic = subject.topics.find((t) => t.id === topicId);
+    const topicId = pickTopicSafe(topicIds, state2.topics, state2.last);
+    const topic = topics.find((t) => t.id === topicId);
     setProblem(topic ? topic.generate() : null);
     setAnswer("");
     setShowHint(false);
@@ -147,19 +134,6 @@ export default function Drill({ subjectId }: { subjectId: string }) {
     setShowHint(true);
   };
 
-  const reveal = () => setShowSol(true);
-
-  const selfGrade = (correct: boolean) => {
-    if (feedback) return; // already graded, waiting for Next
-    const { state: next } = gradeSelf(state, problem.id, correct);
-    setState(next);
-    setFeedback(correct ? "correct" : "wrong");
-    saveLocalProgress(subject.id, next);
-    if (userId) {
-      upsertTopicProgress(supabase, userId, subject.id, problem.id, next.topics[problem.id]);
-    }
-  };
-
   const next = () => nextProblem(state);
 
   const resetTopic = (topicId: string) => {
@@ -172,7 +146,7 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   };
 
   const resetAll = () => {
-    if (!confirm("Reset ALL progress for this subject? This can't be undone.")) return;
+    if (!confirm("Reset ALL progress for this drill? This can't be undone.")) return;
     const fresh = resetAllProgress(subject);
     setState(fresh);
     saveLocalProgress(subject.id, fresh);
@@ -180,17 +154,17 @@ export default function Drill({ subjectId }: { subjectId: string }) {
     nextProblem(fresh);
   };
 
-  const mastered = Object.values(state.topics).filter((t) => t.box >= 5).length;
-  const accuracy = state.stats.done > 0 ? Math.round((state.stats.correct / state.stats.done) * 100) : 0;
-  const currentTopic = subject.topics.find((t) => t.id === problem.id);
-  const mode = currentTopic?.mode ?? "input";
+  const mastered = topics.filter((t) => (state.topics[t.id]?.box ?? 1) >= 5).length;
+  const attempted = topics.reduce((a, t) => a + (state.topics[t.id]?.seen ?? 0), 0);
+  const correctCount = topics.reduce((a, t) => a + (state.topics[t.id]?.ok ?? 0), 0);
+  const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
       <div className="rounded-3xl border border-pf-border bg-pf-surface p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <span className="rounded-full bg-pf-secondary-soft px-3 py-1 text-xs font-medium text-pf-secondary">
-            {subject.topics.find((t) => t.id === problem.id)?.name ?? problem.id}
+            {topics.find((t) => t.id === problem.id)?.name ?? problem.id}
           </span>
           <span className="text-xs text-pf-icon">
             Box {state.topics[problem.id]?.box ?? 1}/5
@@ -202,20 +176,18 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           dangerouslySetInnerHTML={{ __html: problem.prompt }}
         />
 
-        {mode === "input" && (
-          <div className="flex items-center gap-2">
-            <input
-              type={problem.unit === "text" ? "text" : "number"}
-              step="any"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && check()}
-              placeholder="Your answer"
-              className="flex-1 rounded-full border border-pf-border bg-pf-input px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
-            />
-            {problem.unit === "percent" && <span className="text-pf-icon">%</span>}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <input
+            type={problem.unit === "text" ? "text" : "number"}
+            step="any"
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && check()}
+            placeholder="Your answer"
+            className="flex-1 rounded-full border border-pf-border bg-pf-input px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
+          />
+          {problem.unit === "percent" && <span className="text-pf-icon">%</span>}
+        </div>
 
         {feedback && (
           <p
@@ -223,56 +195,24 @@ export default function Drill({ subjectId }: { subjectId: string }) {
               feedback === "correct" ? "text-pf-success" : "text-pf-danger"
             }`}
           >
-            {feedback === "correct"
-              ? "Correct!"
-              : mode === "reveal"
-                ? "Marked as missed — it'll come back around sooner."
-                : `Not quite. Answer: ${problem.ans}`}
+            {feedback === "correct" ? "Correct!" : `Not quite. Answer: ${problem.ans}`}
           </p>
         )}
 
         <div className="mt-5 flex flex-wrap items-center gap-2">
-          {mode === "input" ? (
-            <>
-              <button
-                onClick={check}
-                disabled={!!feedback}
-                className="rounded-full bg-pf-primary px-5 py-2 font-medium text-white transition-colors hover:bg-pf-primary-dark disabled:opacity-40"
-              >
-                Check
-              </button>
-              <button
-                onClick={skip}
-                className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
-              >
-                I&apos;m stuck
-              </button>
-            </>
-          ) : !showSol ? (
-            <button
-              onClick={reveal}
-              className="rounded-full bg-pf-primary px-5 py-2 font-medium text-white transition-colors hover:bg-pf-primary-dark"
-            >
-              Show answer
-            </button>
-          ) : (
-            !feedback && (
-              <>
-                <button
-                  onClick={() => selfGrade(true)}
-                  className="rounded-full bg-pf-success px-5 py-2 font-medium text-white transition-colors hover:opacity-90"
-                >
-                  Got it right
-                </button>
-                <button
-                  onClick={() => selfGrade(false)}
-                  className="rounded-full border border-pf-danger px-5 py-2 font-medium text-pf-danger transition-colors hover:bg-pf-danger hover:text-white"
-                >
-                  Missed it
-                </button>
-              </>
-            )
-          )}
+          <button
+            onClick={check}
+            disabled={!!feedback}
+            className="rounded-full bg-pf-primary px-5 py-2 font-medium text-white transition-colors hover:bg-pf-primary-dark disabled:opacity-40"
+          >
+            Check
+          </button>
+          <button
+            onClick={skip}
+            className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
+          >
+            I&apos;m stuck
+          </button>
           <button
             onClick={() => setShowHint((v) => !v)}
             className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
@@ -293,18 +233,12 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           </p>
         )}
 
-        {showSol &&
-          (mode === "reveal" ? (
-            <p
-              className="mt-3 rounded-2xl bg-pf-surface-soft p-4 text-sm leading-relaxed text-pf-text"
-              dangerouslySetInnerHTML={{ __html: problem.sol }}
-            />
-          ) : (
-            <pre
-              className="mt-3 overflow-x-auto rounded-2xl bg-pf-surface-soft p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-pf-icon [&_.k]:font-bold [&_.k]:text-pf-text"
-              dangerouslySetInnerHTML={{ __html: problem.sol }}
-            />
-          ))}
+        {showSol && (
+          <pre
+            className="mt-3 overflow-x-auto rounded-2xl bg-pf-surface-soft p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-pf-icon [&_.k]:font-bold [&_.k]:text-pf-text"
+            dangerouslySetInnerHTML={{ __html: problem.sol }}
+          />
+        )}
       </div>
 
       <div className="rounded-3xl border border-pf-border bg-pf-surface p-6 shadow-sm">
@@ -315,13 +249,13 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           </button>
         </div>
         <div className="mb-6 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <Stat label="Mastered" value={`${mastered}/${subject.topics.length}`} />
+          <Stat label="Mastered" value={`${mastered}/${topics.length}`} />
           <Stat label="Accuracy" value={`${accuracy}%`} />
           <Stat label="Streak" value={String(state.stats.streak)} />
           <Stat label="Best streak" value={String(state.stats.best)} />
         </div>
         <div className="flex flex-col divide-y divide-pf-border">
-          {subject.topics.map((t) => {
+          {topics.map((t) => {
             const box = state.topics[t.id]?.box ?? 1;
             return (
               <div key={t.id} className="flex items-center justify-between gap-3 py-2.5">

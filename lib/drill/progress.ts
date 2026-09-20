@@ -53,6 +53,21 @@ export function pickTopic(
   return pool[pool.length - 1];
 }
 
+/** pickTopic, but falls back to any id with a progress entry if the weighted pick ever throws or returns garbage. */
+export function pickTopicSafe(
+  topicIds: string[],
+  topicsState: Record<string, TopicProgress>,
+  lastId: string | null,
+): string {
+  try {
+    const id = pickTopic(topicIds, topicsState, lastId);
+    if (id && topicsState[id]) return id;
+  } catch {
+    // fall through to a safe default below
+  }
+  return topicIds.find((id) => topicsState[id]) ?? topicIds[0];
+}
+
 export function isCorrect(user: number, ans: number, unit: ProblemUnit): boolean {
   if (Number.isNaN(user)) return false;
   if (unit === "percent") return Math.abs(user - ans) <= 0.15;

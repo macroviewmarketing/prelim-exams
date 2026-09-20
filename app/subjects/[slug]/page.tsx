@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSubject } from "@/lib/subjects";
-import Drill from "@/components/Drill";
+import SubjectView from "@/components/SubjectView";
 import FormulaSheet from "@/components/FormulaSheet";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -29,7 +29,11 @@ export default async function SubjectPage({
         </div>
       </header>
       <main className="flex-1">
-        <Drill subjectId={subject.id} />
+        <SubjectView
+          subjectId={subject.id}
+          hasTerms={!!subject.terms?.length}
+          hasDrillTopics={subject.topics.some((t) => t.mode !== "reveal")}
+        />
         {subject.formulaSheetHtml && (
           <div className="mx-auto w-full max-w-2xl px-4 pb-8">
             <FormulaSheet html={subject.formulaSheetHtml} />
