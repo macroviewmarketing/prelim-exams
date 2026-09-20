@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSubject } from "@/lib/subjects";
 import Drill from "@/components/Drill";
 import FormulaSheet from "@/components/FormulaSheet";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default async function SubjectPage({
   params,
@@ -24,7 +25,7 @@ export default async function SubjectPage({
             ← Subjects
           </Link>
           <h1 className="font-display text-lg text-pf-text">{subject.title}</h1>
-          <span />
+          <ThemeToggle />
         </div>
       </header>
       <main className="flex-1">

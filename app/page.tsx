@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SUBJECTS } from "@/lib/subjects";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -35,6 +36,7 @@ export default async function Home() {
                 </Link>
               </>
             )}
+            <ThemeToggle />
           </nav>
         </div>
       </header>

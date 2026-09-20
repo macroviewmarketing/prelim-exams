@@ -195,7 +195,7 @@ export default function Drill({ subjectId }: { subjectId: string }) {
             onChange={(e) => setAnswer(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && check()}
             placeholder="Your answer"
-            className="flex-1 rounded-full border border-pf-border bg-white px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
+            className="flex-1 rounded-full border border-pf-border bg-pf-input px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
           />
           {problem.unit === "percent" && <span className="text-pf-icon">%</span>}
         </div>

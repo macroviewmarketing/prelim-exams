@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -30,7 +31,10 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-pf-bg px-4">
       <div className="w-full max-w-sm rounded-3xl border border-pf-border bg-pf-surface p-8 shadow-sm">
-        <h1 className="mb-5 font-display text-3xl text-pf-text">Sign up</h1>
+        <div className="mb-5 flex items-center justify-between">
+          <h1 className="font-display text-3xl text-pf-text">Sign up</h1>
+          <ThemeToggle />
+        </div>
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <input
             type="email"
@@ -38,7 +42,7 @@ export default function SignupPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-full border border-pf-border bg-white px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
+            className="rounded-full border border-pf-border bg-pf-input px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
           />
           <input
             type="password"
@@ -47,7 +51,7 @@ export default function SignupPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-full border border-pf-border bg-white px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
+            className="rounded-full border border-pf-border bg-pf-input px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
           />
           {error && <p className="text-sm text-pf-danger">{error}</p>}
           <button

@@ -5,6 +5,7 @@
   --pf-bg: #fff8f4;
   --pf-surface: #fbfbfb;
   --pf-surface-soft: #fdf1ea;
+  --pf-input: #ffffff;
   --pf-primary: #f9876f;
   --pf-primary-dark: #f16b4e;
   --pf-primary-soft: #fde3dc;
@@ -16,12 +17,33 @@
   --pf-success: #4caf82;
   --pf-warning: #f5a623;
   --pf-danger: #e4534f;
+  color-scheme: light;
+}
+
+:root.dark {
+  --pf-bg: #1c1815;
+  --pf-surface: #24201c;
+  --pf-surface-soft: #2b2420;
+  --pf-input: #2b2420;
+  --pf-primary: #f9876f;
+  --pf-primary-dark: #ffab95;
+  --pf-primary-soft: #3a2a24;
+  --pf-secondary: #e38c92;
+  --pf-secondary-soft: #3a2529;
+  --pf-text: #f5efe9;
+  --pf-icon: #a39b93;
+  --pf-border: #3a332c;
+  --pf-success: #6fcf9c;
+  --pf-warning: #f5b84a;
+  --pf-danger: #f2766f;
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-pf-bg: var(--pf-bg);
   --color-pf-surface: var(--pf-surface);
   --color-pf-surface-soft: var(--pf-surface-soft);
+  --color-pf-input: var(--pf-input);
   --color-pf-primary: var(--pf-primary);
   --color-pf-primary-dark: var(--pf-primary-dark);
   --color-pf-primary-soft: var(--pf-primary-soft);
@@ -42,6 +64,7 @@ body {
   background: var(--pf-bg);
   color: var(--pf-text);
   font-family: var(--font-body);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 ::selection {
