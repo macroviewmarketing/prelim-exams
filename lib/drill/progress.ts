@@ -57,18 +57,26 @@ export function isCorrect(user: number, ans: number, unit: ProblemUnit): boolean
   if (Number.isNaN(user)) return false;
   if (unit === "percent") return Math.abs(user - ans) <= 0.15;
   if (unit === "years") return Math.abs(user - ans) <= 0.1;
+  if (unit === "count") return Math.abs(user - ans) <= 0.5;
   return Math.abs(user - ans) <= Math.max(1, Math.abs(ans) * 0.006);
 }
 
-/** Grades one answer, mutating a fresh copy of state and returning it plus whether it was correct. */
-export function gradeAnswer(
+const normalizeText = (s: string) =>
+  s.trim().toLowerCase().replace(/[^\p{L}\p{N}.]+/gu, " ").replace(/\s+/g, " ").trim();
+
+/** Lenient text match: normalizes case/punctuation/whitespace, exact match after that. */
+export function isCorrectText(user: string, ans: string): boolean {
+  const u = normalizeText(user);
+  if (!u) return false;
+  return u === normalizeText(ans);
+}
+
+/** Shared box/stats update — grading a numeric/text answer and self-grading both funnel through this. */
+function applyGrade(
   state: SubjectState,
   topicId: string,
-  user: number,
-  ans: number,
-  unit: ProblemUnit,
+  correct: boolean,
 ): { state: SubjectState; correct: boolean } {
-  const correct = isCorrect(user, ans, unit);
   const prevTopic = state.topics[topicId] ?? freshTopicProgress();
 
   const nextTopic: TopicProgress = { ...prevTopic, seen: prevTopic.seen + 1 };
@@ -95,6 +103,28 @@ export function gradeAnswer(
   };
 
   return { state: nextState, correct };
+}
+
+/** Grades one typed answer (numeric or text unit), mutating a fresh copy of state. */
+export function gradeAnswer(
+  state: SubjectState,
+  topicId: string,
+  user: string,
+  ans: number | string,
+  unit: ProblemUnit,
+): { state: SubjectState; correct: boolean } {
+  const correct =
+    unit === "text" ? isCorrectText(user, String(ans)) : isCorrect(parseFloat(user), Number(ans), unit);
+  return applyGrade(state, topicId, correct);
+}
+
+/** Grades a "reveal" topic where the user self-reports whether they got it right. */
+export function gradeSelf(
+  state: SubjectState,
+  topicId: string,
+  correct: boolean,
+): { state: SubjectState; correct: boolean } {
+  return applyGrade(state, topicId, correct);
 }
 
 /** Reset a single topic back to box 1 / zeroed counters, keeping other topics untouched. */

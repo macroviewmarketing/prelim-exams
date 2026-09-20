@@ -6,6 +6,7 @@ import type { Problem } from "@/lib/subjects/types";
 import {
   fetchRemoteProgress,
   gradeAnswer,
+  gradeSelf,
   initSubjectState,
   loadLocalProgress,
   mergeRemoteIntoLocal,
@@ -130,8 +131,7 @@ export default function Drill({ subjectId }: { subjectId: string }) {
 
   const check = () => {
     if (feedback) return; // already graded, waiting for Next
-    const user = parseFloat(answer);
-    const { state: next, correct } = gradeAnswer(state, problem.id, user, problem.ans, problem.unit);
+    const { state: next, correct } = gradeAnswer(state, problem.id, answer, problem.ans, problem.unit);
     setState(next);
     setFeedback(correct ? "correct" : "wrong");
     setShowSol(true);
@@ -145,6 +145,19 @@ export default function Drill({ subjectId }: { subjectId: string }) {
     // "I'm stuck" — reveal the solution without grading as wrong yet; user can hit Next after.
     setShowSol(true);
     setShowHint(true);
+  };
+
+  const reveal = () => setShowSol(true);
+
+  const selfGrade = (correct: boolean) => {
+    if (feedback) return; // already graded, waiting for Next
+    const { state: next } = gradeSelf(state, problem.id, correct);
+    setState(next);
+    setFeedback(correct ? "correct" : "wrong");
+    saveLocalProgress(subject.id, next);
+    if (userId) {
+      upsertTopicProgress(supabase, userId, subject.id, problem.id, next.topics[problem.id]);
+    }
   };
 
   const next = () => nextProblem(state);
@@ -169,6 +182,8 @@ export default function Drill({ subjectId }: { subjectId: string }) {
 
   const mastered = Object.values(state.topics).filter((t) => t.box >= 5).length;
   const accuracy = state.stats.done > 0 ? Math.round((state.stats.correct / state.stats.done) * 100) : 0;
+  const currentTopic = subject.topics.find((t) => t.id === problem.id);
+  const mode = currentTopic?.mode ?? "input";
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
@@ -187,18 +202,20 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           dangerouslySetInnerHTML={{ __html: problem.prompt }}
         />
 
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            step="any"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && check()}
-            placeholder="Your answer"
-            className="flex-1 rounded-full border border-pf-border bg-pf-input px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
-          />
-          {problem.unit === "percent" && <span className="text-pf-icon">%</span>}
-        </div>
+        {mode === "input" && (
+          <div className="flex items-center gap-2">
+            <input
+              type={problem.unit === "text" ? "text" : "number"}
+              step="any"
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && check()}
+              placeholder="Your answer"
+              className="flex-1 rounded-full border border-pf-border bg-pf-input px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
+            />
+            {problem.unit === "percent" && <span className="text-pf-icon">%</span>}
+          </div>
+        )}
 
         {feedback && (
           <p
@@ -206,29 +223,61 @@ export default function Drill({ subjectId }: { subjectId: string }) {
               feedback === "correct" ? "text-pf-success" : "text-pf-danger"
             }`}
           >
-            {feedback === "correct" ? "Correct!" : `Not quite. Answer: ${problem.ans}`}
+            {feedback === "correct"
+              ? "Correct!"
+              : mode === "reveal"
+                ? "Marked as missed — it'll come back around sooner."
+                : `Not quite. Answer: ${problem.ans}`}
           </p>
         )}
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button
-            onClick={check}
-            disabled={!!feedback}
-            className="rounded-full bg-pf-primary px-5 py-2 font-medium text-white transition-colors hover:bg-pf-primary-dark disabled:opacity-40"
-          >
-            Check
-          </button>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          {mode === "input" ? (
+            <>
+              <button
+                onClick={check}
+                disabled={!!feedback}
+                className="rounded-full bg-pf-primary px-5 py-2 font-medium text-white transition-colors hover:bg-pf-primary-dark disabled:opacity-40"
+              >
+                Check
+              </button>
+              <button
+                onClick={skip}
+                className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
+              >
+                I&apos;m stuck
+              </button>
+            </>
+          ) : !showSol ? (
+            <button
+              onClick={reveal}
+              className="rounded-full bg-pf-primary px-5 py-2 font-medium text-white transition-colors hover:bg-pf-primary-dark"
+            >
+              Show answer
+            </button>
+          ) : (
+            !feedback && (
+              <>
+                <button
+                  onClick={() => selfGrade(true)}
+                  className="rounded-full bg-pf-success px-5 py-2 font-medium text-white transition-colors hover:opacity-90"
+                >
+                  Got it right
+                </button>
+                <button
+                  onClick={() => selfGrade(false)}
+                  className="rounded-full border border-pf-danger px-5 py-2 font-medium text-pf-danger transition-colors hover:bg-pf-danger hover:text-white"
+                >
+                  Missed it
+                </button>
+              </>
+            )
+          )}
           <button
             onClick={() => setShowHint((v) => !v)}
             className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
           >
             Hint
-          </button>
-          <button
-            onClick={skip}
-            className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
-          >
-            I&apos;m stuck
           </button>
           <button
             onClick={next}
@@ -244,12 +293,18 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           </p>
         )}
 
-        {showSol && (
-          <pre
-            className="mt-3 overflow-x-auto rounded-2xl bg-pf-surface-soft p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-pf-icon [&_.k]:font-bold [&_.k]:text-pf-text"
-            dangerouslySetInnerHTML={{ __html: problem.sol }}
-          />
-        )}
+        {showSol &&
+          (mode === "reveal" ? (
+            <p
+              className="mt-3 rounded-2xl bg-pf-surface-soft p-4 text-sm leading-relaxed text-pf-text"
+              dangerouslySetInnerHTML={{ __html: problem.sol }}
+            />
+          ) : (
+            <pre
+              className="mt-3 overflow-x-auto rounded-2xl bg-pf-surface-soft p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-pf-icon [&_.k]:font-bold [&_.k]:text-pf-text"
+              dangerouslySetInnerHTML={{ __html: problem.sol }}
+            />
+          ))}
       </div>
 
       <div className="rounded-3xl border border-pf-border bg-pf-surface p-6 shadow-sm">
