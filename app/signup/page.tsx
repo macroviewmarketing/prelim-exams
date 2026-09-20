@@ -28,9 +28,9 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-mv-black px-4">
-      <div className="w-full max-w-sm border border-mv-border bg-mv-surface p-7">
-        <h1 className="mb-5 font-display text-3xl tracking-wide text-mv-white">Sign up</h1>
+    <div className="flex min-h-screen items-center justify-center bg-pf-bg px-4">
+      <div className="w-full max-w-sm rounded-3xl border border-pf-border bg-pf-surface p-8 shadow-sm">
+        <h1 className="mb-5 font-display text-3xl text-pf-text">Sign up</h1>
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <input
             type="email"
@@ -38,7 +38,7 @@ export default function SignupPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="border border-mv-border bg-mv-black px-3 py-2.5 text-mv-white outline-none placeholder:text-mv-dim focus:border-mv-blue"
+            className="rounded-full border border-pf-border bg-white px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
           />
           <input
             type="password"
@@ -47,20 +47,20 @@ export default function SignupPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="border border-mv-border bg-mv-black px-3 py-2.5 text-mv-white outline-none placeholder:text-mv-dim focus:border-mv-blue"
+            className="rounded-full border border-pf-border bg-white px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
           />
-          {error && <p className="text-sm text-mv-danger">{error}</p>}
+          {error && <p className="text-sm text-pf-danger">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 border border-mv-white bg-mv-white px-4 py-2.5 font-ui text-[11px] tracking-[0.16em] text-mv-black uppercase transition-colors hover:border-mv-blue hover:bg-mv-blue hover:text-mv-white disabled:opacity-50"
+            className="mt-2 rounded-full bg-pf-primary px-4 py-2.5 font-medium text-white transition-colors hover:bg-pf-primary-dark disabled:opacity-50"
           >
             {loading ? "Signing up…" : "Sign up"}
           </button>
         </form>
-        <p className="mt-4 text-sm text-mv-dim">
+        <p className="mt-4 text-sm text-pf-icon">
           Already have an account?{" "}
-          <Link href="/login" className="text-mv-blue underline">
+          <Link href="/login" className="font-medium text-pf-primary underline">
             Log in
           </Link>
         </p>

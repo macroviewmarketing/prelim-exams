@@ -97,16 +97,16 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   }, [subject?.id, attempt]);
 
   if (!subject) {
-    return <div className="p-8 text-center text-mv-dim">Unknown subject.</div>;
+    return <div className="p-8 text-center text-pf-icon">Unknown subject.</div>;
   }
 
   if (loadError) {
     return (
-      <div className="flex flex-col items-center gap-3 p-8 text-center text-mv-dim">
+      <div className="flex flex-col items-center gap-3 p-8 text-center text-pf-icon">
         <p>Something went wrong loading this drill.</p>
         <button
           onClick={() => setAttempt((n) => n + 1)}
-          className="border border-mv-border px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-white uppercase transition-colors hover:border-mv-white"
+          className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
         >
           Retry
         </button>
@@ -115,7 +115,7 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   }
 
   if (!state || !problem) {
-    return <div className="p-8 text-center text-mv-dim">Loading drill…</div>;
+    return <div className="p-8 text-center text-pf-icon">Loading drill…</div>;
   }
 
   const nextProblem = (state2: SubjectState) => {
@@ -172,18 +172,18 @@ export default function Drill({ subjectId }: { subjectId: string }) {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
-      <div className="border border-mv-border bg-mv-surface p-6">
+      <div className="rounded-3xl border border-pf-border bg-pf-surface p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <span className="border border-mv-blue-glow px-3 py-1 font-ui text-[10px] tracking-[0.2em] text-mv-blue uppercase">
+          <span className="rounded-full bg-pf-secondary-soft px-3 py-1 text-xs font-medium text-pf-secondary">
             {subject.topics.find((t) => t.id === problem.id)?.name ?? problem.id}
           </span>
-          <span className="font-ui text-[11px] text-mv-dim">
+          <span className="text-xs text-pf-icon">
             Box {state.topics[problem.id]?.box ?? 1}/5
           </span>
         </div>
 
         <p
-          className="mb-4 text-lg leading-relaxed text-mv-white [&_b]:font-semibold"
+          className="mb-4 text-lg leading-relaxed text-pf-text [&_b]:font-semibold"
           dangerouslySetInnerHTML={{ __html: problem.prompt }}
         />
 
@@ -195,15 +195,15 @@ export default function Drill({ subjectId }: { subjectId: string }) {
             onChange={(e) => setAnswer(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && check()}
             placeholder="Your answer"
-            className="flex-1 border border-mv-border bg-mv-black px-3 py-2.5 text-mv-white outline-none placeholder:text-mv-dim focus:border-mv-blue"
+            className="flex-1 rounded-full border border-pf-border bg-white px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
           />
-          {problem.unit === "percent" && <span className="text-mv-dim">%</span>}
+          {problem.unit === "percent" && <span className="text-pf-icon">%</span>}
         </div>
 
         {feedback && (
           <p
             className={`mt-3 text-sm font-medium ${
-              feedback === "correct" ? "text-mv-success" : "text-mv-danger"
+              feedback === "correct" ? "text-pf-success" : "text-pf-danger"
             }`}
           >
             {feedback === "correct" ? "Correct!" : `Not quite. Answer: ${problem.ans}`}
@@ -214,51 +214,48 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           <button
             onClick={check}
             disabled={!!feedback}
-            className="border border-mv-white bg-mv-white px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-black uppercase transition-colors hover:border-mv-blue hover:bg-mv-blue hover:text-mv-white disabled:opacity-40"
+            className="rounded-full bg-pf-primary px-5 py-2 font-medium text-white transition-colors hover:bg-pf-primary-dark disabled:opacity-40"
           >
             Check
           </button>
           <button
             onClick={() => setShowHint((v) => !v)}
-            className="border border-mv-border px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-white uppercase transition-colors hover:border-mv-white"
+            className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
           >
             Hint
           </button>
           <button
             onClick={skip}
-            className="border border-mv-border px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-white uppercase transition-colors hover:border-mv-white"
+            className="rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
           >
             I&apos;m stuck
           </button>
           <button
             onClick={next}
-            className="ml-auto border border-mv-border px-4 py-2 font-ui text-[11px] tracking-[0.16em] text-mv-white uppercase transition-colors hover:border-mv-white"
+            className="ml-auto rounded-full border border-pf-border px-5 py-2 font-medium text-pf-text transition-colors hover:border-pf-primary hover:text-pf-primary"
           >
             Next →
           </button>
         </div>
 
         {showHint && (
-          <p className="mt-3 border border-mv-warning/30 bg-mv-warning/10 p-3 text-sm text-mv-warning">
+          <p className="mt-3 rounded-2xl bg-pf-primary-soft p-3 text-sm text-pf-primary-dark">
             {problem.hint}
           </p>
         )}
 
         {showSol && (
           <pre
-            className="mt-3 overflow-x-auto border border-mv-border bg-mv-black p-3 font-ui text-xs leading-relaxed whitespace-pre-wrap text-mv-text [&_.k]:font-bold [&_.k]:text-mv-white"
+            className="mt-3 overflow-x-auto rounded-2xl bg-pf-surface-soft p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-pf-icon [&_.k]:font-bold [&_.k]:text-pf-text"
             dangerouslySetInnerHTML={{ __html: problem.sol }}
           />
         )}
       </div>
 
-      <div className="border border-mv-border bg-mv-surface p-6">
+      <div className="rounded-3xl border border-pf-border bg-pf-surface p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-ui text-[11px] tracking-[0.2em] text-mv-dim uppercase">Mastery</h2>
-          <button
-            onClick={resetAll}
-            className="font-ui text-[10px] tracking-[0.12em] text-mv-danger uppercase hover:underline"
-          >
+          <h2 className="text-sm font-semibold text-pf-text">Mastery</h2>
+          <button onClick={resetAll} className="text-xs font-medium text-pf-danger hover:underline">
             Reset all progress
           </button>
         </div>
@@ -268,12 +265,12 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           <Stat label="Streak" value={String(state.stats.streak)} />
           <Stat label="Best streak" value={String(state.stats.best)} />
         </div>
-        <div className="flex flex-col divide-y divide-mv-border">
+        <div className="flex flex-col divide-y divide-pf-border">
           {subject.topics.map((t) => {
             const box = state.topics[t.id]?.box ?? 1;
             return (
               <div key={t.id} className="flex items-center justify-between gap-3 py-2.5">
-                <span className="truncate text-sm text-mv-text">{t.name}</span>
+                <span className="truncate text-sm text-pf-text">{t.name}</span>
                 <div className="flex shrink-0 items-center gap-3">
                   <div className="flex gap-1" title={`Box ${BOX_LABELS[box]}/5`}>
                     {[1, 2, 3, 4, 5].map((k) => (
@@ -282,16 +279,16 @@ export default function Drill({ subjectId }: { subjectId: string }) {
                         className={`h-2 w-2 rounded-full ${
                           k <= box
                             ? box >= 5
-                              ? "bg-mv-success"
-                              : "bg-mv-warning"
-                            : "bg-mv-border"
+                              ? "bg-pf-success"
+                              : "bg-pf-primary"
+                            : "bg-pf-border"
                         }`}
                       />
                     ))}
                   </div>
                   <button
                     onClick={() => resetTopic(t.id)}
-                    className="font-ui text-[10px] tracking-[0.1em] text-mv-dim uppercase hover:text-mv-danger hover:underline"
+                    className="text-xs text-pf-icon hover:text-pf-danger hover:underline"
                   >
                     Reset
                   </button>
@@ -301,9 +298,9 @@ export default function Drill({ subjectId }: { subjectId: string }) {
           })}
         </div>
         {!userId && (
-          <p className="mt-5 text-xs text-mv-dim">
+          <p className="mt-5 text-xs text-pf-icon">
             Progress is saved on this device only.{" "}
-            <a href="/signup" className="text-mv-blue underline">
+            <a href="/signup" className="font-medium text-pf-primary underline">
               Create an account
             </a>{" "}
             to sync across devices.
@@ -316,9 +313,9 @@ export default function Drill({ subjectId }: { subjectId: string }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-mv-deep px-3 py-2.5">
-      <div className="font-ui text-lg font-bold text-mv-white">{value}</div>
-      <div className="mt-0.5 font-ui text-[10px] tracking-[0.1em] text-mv-dim uppercase">{label}</div>
+    <div className="rounded-2xl bg-pf-surface-soft px-3 py-2.5">
+      <div className="text-lg font-bold text-pf-text">{value}</div>
+      <div className="mt-0.5 text-[11px] text-pf-icon">{label}</div>
     </div>
   );
 }
