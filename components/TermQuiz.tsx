@@ -20,8 +20,20 @@ import {
 } from "@/lib/drill/progress";
 import { createClient } from "@/lib/supabase/client";
 
-const BOX_LABELS = ["", "1", "2", "3", "4", "5"];
 type QuizMode = "mc" | "id";
+
+// Terms master in 3 correct answers (fresh box starts at 1, so box hits
+// TERM_MASTER_BOX after 3 corrects) — a much shorter climb than the
+// 5-box numeric drill, since recall mastery should feel fast to earn.
+const TERM_MASTER_BOX = 4;
+
+const PROMPT_LEADINS = [
+  "Identify the term:",
+  "Which term matches this?",
+  "Name the term described below:",
+  "What term fits here?",
+  "This description points to which term?",
+];
 
 function shuffled<T>(arr: T[]): T[] {
   const a = arr.slice();
@@ -32,12 +44,29 @@ function shuffled<T>(arr: T[]): T[] {
   return a;
 }
 
+/** Prefer same-week terms as distractors — more confusable, so multiple choice stays a real test. */
+function pickDistractors(term: TermEntry, pool: TermEntry[]): TermEntry[] {
+  const sameWeek = pool.filter((t) => t.id !== term.id && t.week === term.week);
+  const other = pool.filter((t) => t.id !== term.id && t.week !== term.week);
+  const preferred = shuffled(sameWeek).slice(0, 3);
+  const fill = shuffled(other).slice(0, 3 - preferred.length);
+  return shuffled([...preferred, ...fill]);
+}
+
+function clampBox(state: SubjectState, termId: string): SubjectState {
+  const t = state.topics[termId];
+  if (!t || t.box <= TERM_MASTER_BOX) return state;
+  return { ...state, topics: { ...state.topics, [termId]: { ...t, box: TERM_MASTER_BOX } } };
+}
+
 export default function TermQuiz({ subjectId }: { subjectId: string }) {
   const subject = useMemo(() => getSubject(subjectId), [subjectId]);
   const terms = useMemo(() => subject?.terms ?? [], [subject]);
   const termIds = useMemo(() => terms.map((t) => t.id), [terms]);
 
   const [quizMode, setQuizMode] = useState<QuizMode>("mc");
+  const [roundMode, setRoundMode] = useState<QuizMode>("mc");
+  const [leadIn, setLeadIn] = useState(PROMPT_LEADINS[0]);
   const [state, setState] = useState<SubjectState | null>(null);
   const [current, setCurrent] = useState<TermEntry | null>(null);
   const [choices, setChoices] = useState<TermEntry[]>([]);
@@ -49,10 +78,15 @@ export default function TermQuiz({ subjectId }: { subjectId: string }) {
   const [supabase] = useState(() => createClient());
   const [attempt, setAttempt] = useState(0);
 
-  const buildRound = (term: TermEntry, mode: QuizMode) => {
-    if (mode === "mc") {
-      const distractors = shuffled(terms.filter((t) => t.id !== term.id)).slice(0, 3);
-      setChoices(shuffled([term, ...distractors]));
+  // A term already answered correctly once (box >= 2) is one step from mastery —
+  // that round is always Identification, the harder test, regardless of the
+  // user's Multiple choice / Identification toggle preference.
+  const buildRound = (term: TermEntry, preferredMode: QuizMode, box: number) => {
+    const effective: QuizMode = preferredMode === "id" || box >= 2 ? "id" : "mc";
+    setRoundMode(effective);
+    setLeadIn(PROMPT_LEADINS[Math.floor(Math.random() * PROMPT_LEADINS.length)]);
+    if (effective === "mc") {
+      setChoices(shuffled([term, ...pickDistractors(term, terms)]));
     }
     setPicked(null);
     setAnswer("");
@@ -73,7 +107,7 @@ export default function TermQuiz({ subjectId }: { subjectId: string }) {
       const term = terms.find((t) => t.id === termId);
       if (!term) throw new Error("no terms available");
       setCurrent(term);
-      buildRound(term, quizMode);
+      buildRound(term, quizMode, local.topics[term.id]?.box ?? 1);
     } catch {
       setLoadError(true);
       return;
@@ -126,12 +160,13 @@ export default function TermQuiz({ subjectId }: { subjectId: string }) {
     const termId = pickTopicSafe(termIds, state2.topics, state2.last);
     const term = terms.find((t) => t.id === termId) ?? null;
     setCurrent(term);
-    if (term) buildRound(term, mode);
+    if (term) buildRound(term, mode, state2.topics[term.id]?.box ?? 1);
   };
 
   const gradeAndAdvance = (userAnswer: string) => {
     if (feedback || !current || !state) return;
-    const { state: next, correct } = gradeAnswer(state, current.id, userAnswer, current.term, "text");
+    const { state: raw, correct } = gradeAnswer(state, current.id, userAnswer, current.term, "text");
+    const next = clampBox(raw, current.id);
     setState(next);
     setFeedback(correct ? "correct" : "wrong");
     saveLocalProgress(subject.id, next);
@@ -152,7 +187,7 @@ export default function TermQuiz({ subjectId }: { subjectId: string }) {
 
   const switchMode = (m: QuizMode) => {
     setQuizMode(m);
-    if (current) buildRound(current, m);
+    if (current) buildRound(current, m, state.topics[current.id]?.box ?? 1);
   };
 
   const resetTerm = (termId: string) => {
@@ -173,10 +208,12 @@ export default function TermQuiz({ subjectId }: { subjectId: string }) {
     nextCard(fresh);
   };
 
-  const mastered = terms.filter((t) => (state.topics[t.id]?.box ?? 1) >= 5).length;
+  const mastered = terms.filter((t) => (state.topics[t.id]?.box ?? 1) >= TERM_MASTER_BOX).length;
   const attempted = terms.reduce((a, t) => a + (state.topics[t.id]?.seen ?? 0), 0);
   const correctCount = terms.reduce((a, t) => a + (state.topics[t.id]?.ok ?? 0), 0);
   const accuracy = attempted > 0 ? Math.round((correctCount / attempted) * 100) : 0;
+  const currentBox = state.topics[current.id]?.box ?? 1;
+  const forcedHard = roundMode === "id" && quizMode === "mc";
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
@@ -200,15 +237,23 @@ export default function TermQuiz({ subjectId }: { subjectId: string }) {
               Identification
             </button>
           </div>
-          <span className="text-xs text-pf-icon">Box {state.topics[current.id]?.box ?? 1}/5</span>
+          <span className="text-xs text-pf-icon">
+            Box {currentBox}/{TERM_MASTER_BOX}
+          </span>
         </div>
 
-        <p className="mb-1 text-xs font-medium text-pf-secondary">
-          {current.week ? `Week ${current.week}` : ""}
+        <p className="mb-1 flex items-center gap-2 text-xs font-medium text-pf-secondary">
+          {leadIn}
+          {current.week ? ` · Week ${current.week}` : ""}
+          {forcedHard && (
+            <span className="rounded-full bg-pf-danger/10 px-2 py-0.5 text-pf-danger">
+              One more to master — typed
+            </span>
+          )}
         </p>
         <p className="mb-5 text-lg leading-relaxed text-pf-text">{current.def}</p>
 
-        {quizMode === "mc" ? (
+        {roundMode === "mc" ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {choices.map((c) => {
               const isPicked = picked === c.id;
@@ -289,12 +334,12 @@ export default function TermQuiz({ subjectId }: { subjectId: string }) {
               <div key={t.id} className="flex items-center justify-between gap-3 py-2.5">
                 <span className="truncate text-sm text-pf-text">{t.term}</span>
                 <div className="flex shrink-0 items-center gap-3">
-                  <div className="flex gap-1" title={`Box ${BOX_LABELS[box]}/5`}>
-                    {[1, 2, 3, 4, 5].map((k) => (
+                  <div className="flex gap-1" title={`Box ${box}/${TERM_MASTER_BOX}`}>
+                    {Array.from({ length: TERM_MASTER_BOX }, (_, i) => i + 1).map((k) => (
                       <span
                         key={k}
                         className={`h-2 w-2 rounded-full ${
-                          k <= box ? (box >= 5 ? "bg-pf-success" : "bg-pf-primary") : "bg-pf-border"
+                          k <= box ? (box >= TERM_MASTER_BOX ? "bg-pf-success" : "bg-pf-primary") : "bg-pf-border"
                         }`}
                       />
                     ))}
