@@ -18,9 +18,14 @@ export default async function Home() {
             Prelim Exams
           </span>
           <nav className="flex items-center gap-4 text-sm">
+            <Link href="/leaderboard" className="text-pf-icon transition-colors hover:text-pf-primary">
+              Leaderboard
+            </Link>
             {user ? (
               <>
-                <span className="text-pf-icon">{user.email}</span>
+                <Link href="/account" className="text-pf-icon transition-colors hover:text-pf-primary">
+                  Account
+                </Link>
                 <SignOutButton />
               </>
             ) : (

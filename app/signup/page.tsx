@@ -6,8 +6,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ThemeToggle from "@/components/ThemeToggle";
 
+const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
+
 export default function SignupPage() {
   const router = useRouter();
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -16,14 +19,38 @@ export default function SignupPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({ email, password });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
+
+    if (!USERNAME_RE.test(username)) {
+      setError("Username must be 3-20 characters: letters, numbers, underscore only.");
       return;
     }
+
+    setLoading(true);
+    const supabase = createClient();
+    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+    if (signUpError) {
+      setLoading(false);
+      setError(signUpError.message);
+      return;
+    }
+
+    if (data.user) {
+      const { error: usernameError } = await supabase
+        .from("profiles")
+        .update({ username })
+        .eq("id", data.user.id);
+      if (usernameError) {
+        setLoading(false);
+        setError(
+          usernameError.code === "23505"
+            ? "That username is taken — try another."
+            : usernameError.message,
+        );
+        return;
+      }
+    }
+
+    setLoading(false);
     router.push("/");
     router.refresh();
   };
@@ -36,6 +63,14 @@ export default function SignupPage() {
           <ThemeToggle />
         </div>
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
+          <input
+            type="text"
+            required
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="rounded-full border border-pf-border bg-pf-input px-4 py-2.5 text-pf-text outline-none placeholder:text-pf-icon focus:border-pf-primary"
+          />
           <input
             type="email"
             required
