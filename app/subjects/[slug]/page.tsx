@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSubject } from "@/lib/subjects";
 import Drill from "@/components/Drill";
+import FormulaSheet from "@/components/FormulaSheet";
 
 export default async function SubjectPage({
   params,
@@ -25,6 +26,11 @@ export default async function SubjectPage({
       </header>
       <main className="flex-1">
         <Drill subjectId={subject.id} />
+        {subject.formulaSheetHtml && (
+          <div className="mx-auto w-full max-w-2xl px-4 pb-8">
+            <FormulaSheet html={subject.formulaSheetHtml} />
+          </div>
+        )}
       </main>
     </div>
   );

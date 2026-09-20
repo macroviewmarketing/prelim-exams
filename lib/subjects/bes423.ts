@@ -440,6 +440,56 @@ const TOPIC_DEFS: { id: string; name: string; fn: Gen }[] = [
   { id: "tax_profit", name: "Profit after tax", fn: G_tax_profit },
 ];
 
+const FORMULA_SHEET_HTML = `
+<h4>The 4 reflexes (run before computing)</h4>
+<ol>
+  <li>Write the formula in symbols first, then numbers.</li>
+  <li>"% of what?" Name the base before applying any percentage.</li>
+  <li>Match <code>i</code> and <code>n</code> to the same period.</li>
+  <li>Hidden step? Net-after-tax = gross up. Deducted upfront = base is amount received. "Effective" = EAR. "By how much" = subtract.</li>
+</ol>
+<h4>Simple interest</h4>
+<table>
+  <tbody>
+    <tr><td>Future amount</td><td><code>F = P(1 + i·n)</code></td></tr>
+    <tr><td>Rate</td><td><code>i = I / (P·n)</code></td></tr>
+    <tr><td>Ordinary / exact</td><td><code>n = d/360</code> / <code>n = d/365</code></td></tr>
+    <tr><td>Cost from price</td><td><code>Cost = Price ÷ (1 + profit%)</code></td></tr>
+    <tr><td>Actual rate (upfront)</td><td>interest ÷ amount received</td></tr>
+  </tbody>
+</table>
+<h4>Compound interest</h4>
+<table>
+  <tbody>
+    <tr><td>Future worth</td><td><code>F = P(1 + i)ⁿ</code></td></tr>
+    <tr><td>Present worth</td><td><code>P = F(1 + i)⁻ⁿ</code></td></tr>
+    <tr><td>Rate</td><td><code>i = (F/P)^(1/n) − 1</code></td></tr>
+    <tr><td>Periods</td><td><code>n = ln(F/P) / ln(1+i)</code></td></tr>
+    <tr><td>Per period</td><td><code>i = r/m ; n = m·t</code></td></tr>
+    <tr><td>Effective rate</td><td><code>EAR = (1 + r/m)ᵐ − 1</code></td></tr>
+  </tbody>
+</table>
+<h4>Annuity &amp; perpetuity</h4>
+<table>
+  <tbody>
+    <tr><td>Find F from A</td><td><code>F = A·[((1+i)ⁿ−1)/i]</code></td></tr>
+    <tr><td>Sinking fund</td><td><code>A = F·[i/((1+i)ⁿ−1)]</code></td></tr>
+    <tr><td>Find P from A</td><td><code>P = A·[((1+i)ⁿ−1)/(i(1+i)ⁿ)]</code></td></tr>
+    <tr><td>Capital recovery</td><td><code>A = P·[i(1+i)ⁿ/((1+i)ⁿ−1)]</code></td></tr>
+    <tr><td>Annuity due</td><td>ordinary value × (1 + i)</td></tr>
+    <tr><td>Perpetuity</td><td><code>P = A / i</code></td></tr>
+  </tbody>
+</table>
+<h4>Tax</h4>
+<table>
+  <tbody>
+    <tr><td>Donor's tax</td><td><code>6% × (gift − ₱250,000)</code></td></tr>
+    <tr><td>Estate tax</td><td><code>6% × net estate</code></td></tr>
+    <tr><td>Profit after tax</td><td>before-tax × (1 − tax rate)</td></tr>
+  </tbody>
+</table>
+`.trim();
+
 export const bes423: Subject = {
   id: "bes423",
   title: "BES 423 · Engineering Economy",
@@ -449,4 +499,5 @@ export const bes423: Subject = {
     name: t.name,
     generate: () => ({ ...t.fn(), name: t.name }),
   })),
+  formulaSheetHtml: FORMULA_SHEET_HTML,
 };

@@ -21,4 +21,5 @@ export type Subject = {
   title: string;
   description: string;
   topics: Topic[];
+  formulaSheetHtml?: string;
 };

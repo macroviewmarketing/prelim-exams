@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getSubject } from "@/lib/subjects";
 import type { Problem } from "@/lib/subjects/types";
 import {
@@ -10,6 +10,10 @@ import {
   loadLocalProgress,
   mergeRemoteIntoLocal,
   pickTopic,
+  resetAllProgress,
+  resetRemoteSubjectProgress,
+  resetRemoteTopicProgress,
+  resetTopicProgress,
   saveLocalProgress,
   upsertTopicProgress,
   type SubjectState,
@@ -17,6 +21,20 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 const BOX_LABELS = ["", "1", "2", "3", "4", "5"];
+
+function pickSafe(
+  topicIds: string[],
+  topics: SubjectState["topics"],
+  last: string | null,
+): string {
+  try {
+    const id = pickTopic(topicIds, topics, last);
+    if (id && topics[id]) return id;
+  } catch {
+    // fall through to a safe default below
+  }
+  return topicIds.find((id) => topics[id]) ?? topicIds[0];
+}
 
 export default function Drill({ subjectId }: { subjectId: string }) {
   const subject = useMemo(() => getSubject(subjectId), [subjectId]);
@@ -29,50 +47,80 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   const [showSol, setShowSol] = useState(false);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [supabase] = useState(() => createClient());
+  const [attempt, setAttempt] = useState(0);
 
-  const supabaseRef = useRef(createClient());
-
-  // Init state + pull remote progress on mount.
+  // Init state + pull remote progress on mount. Wrapped defensively: any
+  // failure here used to leave the "Loading drill…" placeholder stuck
+  // forever with no way out, which is the bug this guards against.
   useEffect(() => {
     if (!subject) return;
-    const local = loadLocalProgress(subject);
-    // localStorage isn't available during SSR, so this has to be read and
-    // synced into state on mount rather than via a useState initializer.
+    // localStorage/auth aren't available during SSR, so this whole block has
+    // to run and sync state on mount rather than via useState initializers.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState(local);
+    setLoadError(false);
 
-    const topic = subject.topics.find(
-      (t) => t.id === pickTopic(topicIds, local.topics, local.last),
-    );
-    if (topic) setProblem(topic.generate());
+    try {
+      const local = loadLocalProgress(subject);
+      setState(local);
+
+      const topicId = pickSafe(topicIds, local.topics, local.last);
+      const topic = subject.topics.find((t) => t.id === topicId);
+      if (!topic) throw new Error("no topics available");
+      setProblem(topic.generate());
+    } catch {
+      setLoadError(true);
+      return;
+    }
 
     (async () => {
-      const supabase = supabaseRef.current;
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id ?? null;
-      setUserId(uid);
-      if (!uid) return;
+      try {
+        const { data } = await supabase.auth.getUser();
+        const uid = data.user?.id ?? null;
+        setUserId(uid);
+        if (!uid) return;
 
-      const remoteTopics = await fetchRemoteProgress(supabase, uid, subject.id);
-      if (remoteTopics && Object.keys(remoteTopics).length > 0) {
-        setState((prev) => {
-          const merged = mergeRemoteIntoLocal(prev ?? initSubjectState(subject), remoteTopics);
-          saveLocalProgress(subject.id, merged);
-          return merged;
-        });
+        const remoteTopics = await fetchRemoteProgress(supabase, uid, subject.id);
+        if (remoteTopics && Object.keys(remoteTopics).length > 0) {
+          setState((prev) => {
+            const merged = mergeRemoteIntoLocal(prev ?? initSubjectState(subject), remoteTopics);
+            saveLocalProgress(subject.id, merged);
+            return merged;
+          });
+        }
+      } catch {
+        // Auth/remote sync is best-effort; local drill state already loaded above.
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subject?.id]);
+  }, [subject?.id, attempt]);
 
-  if (!subject || !state || !problem) {
+  if (!subject) {
+    return <div className="p-8 text-center text-zinc-500">Unknown subject.</div>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center gap-3 p-8 text-center text-zinc-500">
+        <p>Something went wrong loading this drill.</p>
+        <button
+          onClick={() => setAttempt((n) => n + 1)}
+          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!state || !problem) {
     return <div className="p-8 text-center text-zinc-500">Loading drill…</div>;
   }
 
   const nextProblem = (state2: SubjectState) => {
-    const topic = subject.topics.find(
-      (t) => t.id === pickTopic(topicIds, state2.topics, state2.last),
-    );
+    const topicId = pickSafe(topicIds, state2.topics, state2.last);
+    const topic = subject.topics.find((t) => t.id === topicId);
     setProblem(topic ? topic.generate() : null);
     setAnswer("");
     setShowHint(false);
@@ -89,7 +137,7 @@ export default function Drill({ subjectId }: { subjectId: string }) {
     setShowSol(true);
     saveLocalProgress(subject.id, next);
     if (userId) {
-      upsertTopicProgress(supabaseRef.current, userId, subject.id, problem.id, next.topics[problem.id]);
+      upsertTopicProgress(supabase, userId, subject.id, problem.id, next.topics[problem.id]);
     }
   };
 
@@ -100,6 +148,24 @@ export default function Drill({ subjectId }: { subjectId: string }) {
   };
 
   const next = () => nextProblem(state);
+
+  const resetTopic = (topicId: string) => {
+    if (!confirm("Reset progress for this topic?")) return;
+    const updated = resetTopicProgress(state, topicId);
+    setState(updated);
+    saveLocalProgress(subject.id, updated);
+    if (userId) resetRemoteTopicProgress(supabase, userId, subject.id, topicId);
+    if (problem?.id === topicId) nextProblem(updated);
+  };
+
+  const resetAll = () => {
+    if (!confirm("Reset ALL progress for this subject? This can't be undone.")) return;
+    const fresh = resetAllProgress(subject);
+    setState(fresh);
+    saveLocalProgress(subject.id, fresh);
+    if (userId) resetRemoteSubjectProgress(supabase, userId, subject.id);
+    nextProblem(fresh);
+  };
 
   const mastered = Object.values(state.topics).filter((t) => t.box >= 5).length;
   const accuracy = state.stats.done > 0 ? Math.round((state.stats.correct / state.stats.done) * 100) : 0;
@@ -187,28 +253,50 @@ export default function Drill({ subjectId }: { subjectId: string }) {
       </div>
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Mastery</h2>
-        <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Mastery</h2>
+          <button
+            onClick={resetAll}
+            className="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+          >
+            Reset all progress
+          </button>
+        </div>
+        <div className="mb-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
           <Stat label="Mastered" value={`${mastered}/${subject.topics.length}`} />
           <Stat label="Accuracy" value={`${accuracy}%`} />
           <Stat label="Streak" value={String(state.stats.streak)} />
           <Stat label="Best streak" value={String(state.stats.best)} />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-800">
           {subject.topics.map((t) => {
             const box = state.topics[t.id]?.box ?? 1;
             return (
-              <div
-                key={t.id}
-                title={`${t.name} — box ${BOX_LABELS[box]}`}
-                className={`h-2.5 w-2.5 rounded-full ${
-                  box >= 5
-                    ? "bg-emerald-500"
-                    : box >= 3
-                      ? "bg-amber-400"
-                      : "bg-zinc-300 dark:bg-zinc-700"
-                }`}
-              />
+              <div key={t.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="truncate text-sm text-zinc-700 dark:text-zinc-300">{t.name}</span>
+                <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex gap-1" title={`Box ${BOX_LABELS[box]}/5`}>
+                    {[1, 2, 3, 4, 5].map((k) => (
+                      <span
+                        key={k}
+                        className={`h-2 w-2 rounded-full ${
+                          k <= box
+                            ? box >= 5
+                              ? "bg-emerald-500"
+                              : "bg-amber-400"
+                            : "bg-zinc-200 dark:bg-zinc-700"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => resetTopic(t.id)}
+                    className="text-xs text-zinc-400 hover:text-red-600 hover:underline dark:hover:text-red-400"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>

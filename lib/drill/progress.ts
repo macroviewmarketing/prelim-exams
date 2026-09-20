@@ -97,6 +97,20 @@ export function gradeAnswer(
   return { state: nextState, correct };
 }
 
+/** Reset a single topic back to box 1 / zeroed counters, keeping other topics untouched. */
+export function resetTopicProgress(state: SubjectState, topicId: string): SubjectState {
+  return {
+    ...state,
+    topics: { ...state.topics, [topicId]: freshTopicProgress() },
+    last: state.last === topicId ? null : state.last,
+  };
+}
+
+/** Reset every topic in a subject back to a fresh state (keeps lifetime stats reset too). */
+export function resetAllProgress(subject: Subject): SubjectState {
+  return initSubjectState(subject);
+}
+
 // ---- localStorage persistence ----
 
 function storageKey(subjectId: string) {
@@ -193,6 +207,31 @@ export function upsertTopicProgress(
       },
       { onConflict: "user_id,subject_id,topic_id" },
     )
+    .then(() => {
+      /* no-op */
+    });
+}
+
+export function resetRemoteTopicProgress(
+  supabase: SupabaseClient,
+  userId: string,
+  subjectId: string,
+  topicId: string,
+): void {
+  upsertTopicProgress(supabase, userId, subjectId, topicId, freshTopicProgress());
+}
+
+export function resetRemoteSubjectProgress(
+  supabase: SupabaseClient,
+  userId: string,
+  subjectId: string,
+): void {
+  // Fire-and-forget: don't block the UI on network latency.
+  void supabase
+    .from("topic_progress")
+    .delete()
+    .eq("user_id", userId)
+    .eq("subject_id", subjectId)
     .then(() => {
       /* no-op */
     });
